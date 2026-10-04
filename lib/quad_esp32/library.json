@@ -1,0 +1,8 @@
+{
+  "name": "quad_esp32",
+  "version": "1.0.0",
+  "description": "ESP32 hardware layer: PCA9685 servo driver, PS5 controller, ADC battery sensor, NVS storage, WiFi dashboard, serial console, FreeRTOS runtime",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [{ "name": "quad_core" }]
+}

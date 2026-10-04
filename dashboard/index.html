@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuadSpider Dashboard</title>
+<style>
+:root{
+  --bg:#0f1216;--surface:#171b21;--surface2:#1e242c;--border:#2a313b;--text:#e6e9ee;--muted:#8b95a3;
+  --accent:#4f9cf9;--ok:#3fb950;--warn:#d29922;--err:#f85149;--crit:#ff2d55;--bar:#2f6fbf;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: light){
+  :root{--bg:#f4f6f9;--surface:#fff;--surface2:#eef1f5;--border:#d8dee6;--text:#1b2129;--muted:#5d6876;
+        --accent:#1f6feb;--ok:#1a7f37;--warn:#9a6700;--err:#cf222e;--crit:#d1002f;--bar:#5b9be6}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+header h1{font-size:17px;margin:0 6px 0 0}
+.badge{padding:3px 9px;border-radius:999px;font-weight:600;font-size:12px;background:var(--surface2);border:1px solid var(--border)}
+.badge.ok{color:var(--ok);border-color:var(--ok)} .badge.warn{color:var(--warn);border-color:var(--warn)}
+.badge.err{color:#fff;background:var(--crit);border-color:var(--crit)}
+.spacer{flex:1}
+button{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:6px 11px;cursor:pointer;min-height:34px}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.active{outline:2px solid var(--accent);outline-offset:-2px}
+#estop{background:var(--crit);border-color:var(--crit);color:#fff;font-weight:800;letter-spacing:.04em;padding:8px 18px}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:14px 16px;max-width:1500px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.wide{grid-column:1/-1}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12px;font-family:var(--mono);padding:2px 7px;border-radius:6px;border:1px solid var(--border);color:var(--muted)}
+.chip.crit{color:#fff;background:var(--crit);border-color:var(--crit)} .chip.warn{color:var(--warn);border-color:var(--warn)}
+.meter{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin:4px 0 8px}
+.meter>div{height:100%;background:var(--ok);width:0}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+th,td{padding:4px 6px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+tr.sel{background:var(--surface2)}
+.bar{position:relative;width:120px;height:10px;background:var(--surface2);border-radius:3px}
+.bar .lim{position:absolute;top:0;bottom:0;background:var(--border)}
+.bar .val{position:absolute;top:-2px;width:3px;height:14px;background:var(--accent);border-radius:1px}
+.log{height:300px;overflow:auto;font-family:var(--mono);font-size:12px;background:var(--surface2);border-radius:8px;padding:6px}
+.log div{padding:1px 2px;white-space:pre-wrap;overflow-wrap:anywhere}
+.log .t{color:var(--muted)} .WARN{color:var(--warn)} .ERROR,.CRIT{color:var(--err);font-weight:600}
+input,select{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;min-height:34px}
+input[type=text]{flex:1;min-width:0;font-family:var(--mono)}
+svg text{fill:var(--muted);font:11px system-ui}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 14px;display:none;max-width:90vw;white-space:pre-wrap;font-family:var(--mono);font-size:12px}
+.scroll{overflow-x:auto}
+@media (max-width:520px){main{padding:10px}header{padding:8px 10px}.bar{width:70px}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="name">QuadSpider</h1>
+  <span class="badge" id="lifecycle">-</span>
+  <span class="badge" id="mode">-</span>
+  <span class="badge" id="link">offline</span>
+  <span class="spacer"></span>
+  <button id="estop" title="Emergency stop (Esc)">E-STOP</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Control</h2>
+    <div class="row" id="modes">
+      <button data-mode="normal">NORMAL</button><button data-mode="ik">IK</button>
+      <button data-mode="dance">DANCE</button><button data-mode="cal">CALIBRATION</button>
+    </div>
+    <div class="row">
+      <button data-cmd="clear" class="primary">Clear E-stop</button>
+      <button data-cmd="arm">Arm / wake</button>
+      <button data-cmd="shutdown">Shutdown</button>
+    </div>
+    <div class="row">
+      <button data-cmd="sit">Sit</button><button data-cmd="stand">Stand</button>
+      <button data-cmd="stop">Stop</button><button data-cmd="reset">Defaults</button>
+      <button data-cmd="attack">Attack</button><button data-cmd="gait next">Next gait</button>
+    </div>
+    <div class="row">
+      <select id="dance" aria-label="Dance"></select>
+      <button id="danceOnce">Dance</button><button id="danceLoop">Loop</button>
+    </div>
+    <form class="row" id="cli"><input type="text" id="line" placeholder="command (help)" autocomplete="off"><button class="primary">Send</button></form>
+  </section>
+
+  <section class="card">
+    <h2>Status</h2>
+    <dl class="kv" id="status"></dl>
+  </section>
+
+  <section class="card">
+    <h2>Health</h2>
+    <div id="batteryLabel" class="kv"></div>
+    <div class="meter"><div id="batteryBar"></div></div>
+    <dl class="kv" id="health"></dl>
+    <h2 style="margin-top:12px">Faults</h2>
+    <div class="chips" id="faults"></div>
+    <h2 style="margin-top:12px">Seen since boot</h2>
+    <div class="chips" id="seen"></div>
+  </section>
+
+  <section class="card">
+    <h2>Legs (top view)</h2>
+    <svg id="legs" viewBox="-170 -170 340 340" width="100%" style="max-height:340px" role="img" aria-label="Foot positions"></svg>
+  </section>
+
+  <section class="card wide">
+    <h2>Servos &amp; calibration</h2>
+    <div class="row">
+      <button data-cmd="cal save" class="primary cal">Save calibration</button>
+      <button data-cmd="cal reset all" class="cal">Reset all trims</button>
+      <span id="calNote" style="color:var(--muted)"></span>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>Leg</th><th>Joint</th><th>Ch</th><th>Output</th><th></th><th>Target</th><th>Trim</th><th>Calibrate</th></tr></thead>
+      <tbody id="servos"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card wide">
+    <h2>Event log</h2>
+    <div class="row">
+      <select id="level" aria-label="Minimum level">
+        <option value="0">DEBUG+</option><option value="1" selected>INFO+</option>
+        <option value="2">WARN+</option><option value="3">ERROR+</option>
+      </select>
+      <button id="clearLog">Clear view</button>
+    </div>
+    <div class="log" id="events"></div>
+  </section>
+
+  <section class="card">
+    <h2>Movement history</h2>
+    <div class="log" id="moves"></div>
+  </section>
+
+  <section class="card">
+    <h2>Button history</h2>
+    <div class="log" id="buttons"></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const LEVELS = {DEBUG:0, INFO:1, WARN:2, ERROR:3, CRIT:4};
+const CRITICAL = new Set(["SERVO_DRIVER_INIT","SERVO_DRIVER_COMM","SERVO_DRIVER_RESET","SERVO_READBACK",
+  "BATTERY_CRITICAL","BATTERY_OVERVOLTAGE","BATTERY_UNSTABLE","CONFIG_INVALID"]);
+const MAX_ROWS = 300;
+const st = {log:0, move:0, btn:0, uptime:0, events:[], moves:[], buttons:[], d:null, fails:0};
+const $ = id => document.getElementById(id);
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",3500); }
+
+async function cmd(line){
+  try{
+    const r = await fetch("/api/cmd",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"line="+encodeURIComponent(line)});
+    const j = await r.json();
+    if(!j.ok) toast(j.error||"command failed"); else if(j.text) toast(j.text);
+  }catch(e){ toast("robot unreachable"); }
+}
+
+function fmtT(ms){ return (ms/1000).toFixed(2).padStart(9," "); }
+function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+
+function pushHistory(list, items){ for(const it of items) list.push(it); if(list.length>MAX_ROWS) list.splice(0, list.length-MAX_ROWS); }
+
+function renderLog(box, rows, line){
+  const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 8;
+  box.replaceChildren(...rows.map(line));
+  if(atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function kv(dl, pairs){
+  dl.replaceChildren(...pairs.flatMap(([k,v])=>[el("dt",null,k), el("dd",null, v===null||v===undefined?"-":String(v))]));
+}
+
+function chips(box, names, active){
+  box.replaceChildren(...(names.length? names.map(n=>el("span","chip "+(active?(CRITICAL.has(n)?"crit":"warn"):""),n)) : [el("span","chip","none")]));
+}
+
+function drawLegs(d){
+  const svg=$("legs"), ns="http://www.w3.org/2000/svg";
+  // Robot x (forward) points up the screen, robot y (left) points left.
+  const P = v => [-v[1], -v[0]];
+  const node=(tag,attrs)=>{ const n=document.createElementNS(ns,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); return n; };
+  const parts=[];
+  const body=d.mounts.map(P);
+  parts.push(node("polygon",{points:body.map(p=>p.join(",")).join(" "),fill:"var(--surface2)",stroke:"var(--border)","stroke-width":2}));
+  parts.push(node("path",{d:"M0,-22 L8,-8 L-8,-8 Z",fill:"var(--muted)"}));
+  const zs=d.feet.map(f=>f[2]), ground=Math.min(...zs);
+  const names=["FR","FL","RL","RR"];
+  d.feet.forEach((f,i)=>{
+    const m=P(d.mounts[i]), p=P(f), lifted=f[2]-ground>4;
+    const ik=d.ik.leg===i;
+    parts.push(node("line",{x1:m[0],y1:m[1],x2:p[0],y2:p[1],stroke:ik?"var(--accent)":"var(--muted)","stroke-width":4,"stroke-linecap":"round"}));
+    parts.push(node("circle",{cx:p[0],cy:p[1],r:lifted?9:6,fill:lifted?"none":"var(--text)",stroke:"var(--accent)","stroke-width":lifted?3:0}));
+    const t=node("text",{x:p[0]+(p[0]>0?10:-24),y:p[1]+(p[1]>0?16:-8)}); t.textContent=names[i]+" z"+f[2].toFixed(0); parts.push(t);
+  });
+  const w=d.walk;
+  if(w.speed>0.01){
+    const len=60*Math.hypot(w.vx,w.vy);
+    const a=P([w.vx,w.vy]); const n=Math.hypot(a[0],a[1])||1;
+    if(len>2) parts.push(node("line",{x1:0,y1:0,x2:a[0]/n*len,y2:a[1]/n*len,stroke:"var(--ok)","stroke-width":3}));
+    if(Math.abs(w.turn)>0.05){ const t=node("text",{x:-30,y:40}); t.textContent=(w.turn>0?"↺":"↻")+" turn "+Math.round(Math.abs(w.turn)*100)+"%"; parts.push(t); }
+  }
+  svg.replaceChildren(...parts);
+}
+
+function renderServos(d){
+  const tb=$("servos"), cal=d.status.mode==="CALIBRATION";
+  if(tb.children.length!==d.servos.length){
+    tb.replaceChildren(...d.servos.map((s,i)=>{
+      const tr=el("tr");
+      const bar=el("div","bar"); bar.append(el("div","lim"),el("div","lim"),el("div","val"));
+      bar.children[0].style.cssText="left:0;width:"+(10/180*100)+"%"; bar.children[1].style.cssText="right:0;width:"+(10/180*100)+"%";
+      const tools=el("td");
+      [["select",()=>cmd("cal select "+i)],["-1",()=>cmd("cal nudge "+i+" -1")],["-0.5",()=>cmd("cal nudge "+i+" -0.5")],
+       ["+0.5",()=>cmd("cal nudge "+i+" 0.5")],["+1",()=>cmd("cal nudge "+i+" 1")],["0",()=>cmd("cal reset "+i)]]
+        .forEach(([label,fn])=>{ const b=el("button","cal",label); b.onclick=fn; b.style.minHeight="26px"; b.style.padding="2px 7px"; tools.append(b); });
+      const barTd=el("td"); barTd.append(bar);
+      tr.append(el("td",null,i),el("td",null,s.leg),el("td",null,s.joint),el("td",null,s.ch),el("td"),barTd,el("td"),el("td"),tools);
+      return tr;
+    }));
+  }
+  d.servos.forEach((s,i)=>{
+    const tr=tb.children[i];
+    tr.className = cal && d.cal.selected===i ? "sel" : "";
+    tr.children[4].textContent = s.deg===null ? "off" : s.deg.toFixed(1)+"°";
+    const v=tr.children[5].querySelector(".val"); v.style.display=s.deg===null?"none":"block"; if(s.deg!==null) v.style.left=(s.deg/180*100)+"%";
+    tr.children[6].textContent = s.target===null ? "-" : s.target.toFixed(1)+"°";
+    tr.children[7].textContent = (s.trim>=0?"+":"")+s.trim.toFixed(1);
+  });
+  document.querySelectorAll(".cal").forEach(b=>b.disabled=!cal && !b.dataset.cmd?.startsWith("cal save"));
+  $("calNote").textContent = cal ? (d.cal.dirty ? "unsaved changes" : "saved") : "switch to CALIBRATION mode to adjust trims";
+}
+
+function render(d){
+  $("name").textContent=d.name;
+  document.title=d.name+" – "+d.status.mode;
+  const lc=$("lifecycle"); lc.textContent=d.status.lifecycle; lc.className="badge "+(d.status.lifecycle==="ACTIVE"?"ok":"warn");
+  const md=$("mode"); md.textContent=d.status.mode; md.className="badge "+(d.status.mode==="EMERGENCY_STOP"?"err":"ok");
+  document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("active", d.status.mode.toLowerCase().startsWith(b.dataset.mode)));
+
+  const sel=$("dance");
+  if(sel.options.length!==d.dances.length) sel.replaceChildren(...d.dances.map((n,i)=>{ const o=el("option",null,n); o.value=i; return o; }));
+
+  const s=d.status, w=d.walk;
+  kv($("status"),[
+    ["Lifecycle",s.lifecycle],["Mode",s.mode],["Posture",s.posture],["Motion",s.motion],
+    ["Gait",s.gait],["Dance",s.dance+(s.animation?" (playing "+s.animation+(s.loop?", loop":"")+")":"")],
+    ["Walk",w.speed>0?`vx ${w.vx.toFixed(2)} vy ${w.vy.toFixed(2)} turn ${w.turn.toFixed(2)} @ ${Math.round(w.speed*100)}%`:"stopped"],
+    ["Outputs",s.outputs?"enabled":"off"],
+    ["IK leg",d.ik.leg>=0?["FR","FL","RL","RR"][d.ik.leg]+" offset "+d.ik.offset.map(v=>v.toFixed(0)).join(", ")+" mm":"-"],
+    ["E-stop reason",s.estopReason||"-"],
+  ]);
+
+  const h=d.health, b=h.battery;
+  kv($("batteryLabel"),[["Battery", b.enabled ? `${b.v.toFixed(2)} V  ${b.pct}%  ${b.status}  (ripple ${b.ripple.toFixed(2)} V)` : "not monitored (no divider)"]]);
+  const bar=$("batteryBar"); bar.style.width=(b.enabled?Math.max(0,b.pct):0)+"%";
+  bar.style.background = b.status==="OK" ? "var(--ok)" : b.status==="LOW" ? "var(--warn)" : "var(--err)";
+  kv($("health"),[
+    ["Controller",h.controller?"connected":"not connected"],
+    ["Control loop",`${h.periodMs.toFixed(2)} ms, exec ${h.execUs} µs (max ${h.execMaxUs} µs)`],
+    ["Overruns",h.overruns],["I2C errors",h.i2cErrors],["Angle clamps",h.clamps],["IK rejections",h.ikFailures],
+    ["Warnings / errors",`${h.warnings} / ${h.errors}`],["Free heap",`${(h.heap/1024).toFixed(0)} kB (min ${(h.minHeap/1024).toFixed(0)} kB)`],
+    ["WiFi",`${h.ip}${h.rssi?" ("+h.rssi+" dBm)":""}`],["Uptime",(d.uptime/1000).toFixed(0)+" s"],["Firmware",d.firmware],
+  ]);
+  chips($("faults"),h.faults,true);
+  chips($("seen"),h.seenFaults,false);
+
+  drawLegs(d);
+  renderServos(d);
+
+  const min=+$("level").value;
+  renderLog($("events"), st.events.filter(e=>LEVELS[e.lvl]>=min), e=>{
+    const r=el("div",e.lvl); r.append(el("span","t",fmtT(e.t)+" "), document.createTextNode(`${e.lvl.padEnd(5)} ${e.cat.padEnd(6)} ${e.msg}`)); return r; });
+  renderLog($("moves"), st.moves, m=>{ const r=el("div"); r.append(el("span","t",fmtT(m.t)+" "), document.createTextNode(`${m.mode.padEnd(11)} ${m.msg}`)); return r; });
+  renderLog($("buttons"), st.buttons, b=>{ const r=el("div"); r.append(el("span","t",fmtT(b.t)+" "), document.createTextNode(`${b.btn.padEnd(10)} ${b.act.padEnd(5)} (${b.mode})`)); return r; });
+}
+
+function ingest(d){
+  if(d.uptime < st.uptime){ st.log=st.move=st.btn=0; st.events=[]; st.moves=[]; st.buttons=[]; }  // robot rebooted
+  st.uptime=d.uptime;
+  pushHistory(st.events,d.logs); pushHistory(st.moves,d.moves); pushHistory(st.buttons,d.buttons);
+  if(d.logs.length) st.log=d.logs[d.logs.length-1].seq;
+  if(d.moves.length) st.move=d.moves[d.moves.length-1].seq;
+  if(d.buttons.length) st.btn=d.buttons[d.buttons.length-1].seq;
+  st.d=d;
+}
+
+async function poll(){
+  try{
+    const r=await fetch(`/api/state?log=${st.log}&move=${st.move}&btn=${st.btn}`,{cache:"no-store"});
+    const d=await r.json();
+    st.fails=0; ingest(d); render(d);
+    const l=$("link"); l.textContent="live"; l.className="badge ok";
+  }catch(e){
+    if(++st.fails>2){ const l=$("link"); l.textContent="offline"; l.className="badge err"; }
+  }finally{
+    setTimeout(poll,(st.d&&st.d.pollMs)||250);
+  }
+}
+
+$("estop").onclick=()=>cmd("estop");
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") cmd("estop"); });
+document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>cmd(b.dataset.cmd)));
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>cmd("mode "+b.dataset.mode)));
+$("danceOnce").onclick=()=>cmd("dance "+$("dance").value);
+$("danceLoop").onclick=()=>cmd("dance "+$("dance").value+" loop");
+$("cli").onsubmit=e=>{ e.preventDefault(); const v=$("line").value.trim(); if(v){ cmd(v); $("line").value=""; } };
+$("level").onchange=()=>st.d&&render(st.d);
+$("clearLog").onclick=()=>{ st.events=[]; st.d&&render(st.d); };
+poll();
+</script>
+</body>
+</html>

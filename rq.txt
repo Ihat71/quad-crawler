@@ -1,0 +1,103 @@
+Requirements for my Quadruped robot project
+
+Stakeholders -> robotics enthusiasts, possible yt watchers, me
+
+design ->
+
+ps5 controller -> bluetooth -> esp 32 -> pca module -> servos
+
+
+requirements -> 
+
+Must have 4 legs
+Each leg has 3 DOF
+Need to have emergency stop
+Made via platform.io
+Movement types:
+    forward
+    backward
+    right and left
+    turning
+    stop
+Must stop operating in these conditions:
+    irregular power from battery
+    servo malfunction
+    when left D-pad is pressed
+Software must prevent commanded servo angles from exceeding 10°–170°, unless explicitly overridden by a future configuration.
+Must have servo calibration
+Must have following poses and dances:
+    up and down
+    sitting
+    standing
+    left and right rocking/dancing
+
+Software must be evolvable and modular 
+Ps5 controller must be mapped to movement commands
+ps5 controller left joystick must control speed up to a maximum capable speed (around 90%)
+Must have a mode where one leg can be controlled via inverse kinematics (preset to front right leg)
+Must be observable
+the following must be observable:
+    robot's health
+    status
+    mode
+    movements and movements history
+    ps5 button history
+Must have a dashboard
+Robot must have a safe and reliable startup when booted nad it must have a safe downtime when stopped/turned off
+Robot configuration must be externalized from movement logic.
+
+
+non functional ->
+Maintainability
+- Software must be modular.
+- Hardware-specific code must be separated from robot logic.
+- Configuration must be separated from application logic.
+Reliability
+- Critical errors must be detected.
+- The robot must enter a safe state after critical failures.
+Performance
+- Controller input must be processed with low enough latency for responsive movement.
+- Servo updates must occur at a consistent rate.
+- Dashboard/logging must not interfere with real-time robot control.
+Observability
+- Important state changes must be logged.
+- Errors must be identifiable during development.
+
+tests ->
+software must have a separate folder where test firmware is booted to esp32
+the following must be testable:
+    each servo
+    each leg
+    standing and sitting
+    low battery behavior
+    emergency stop
+    error handling capabilities
+
+Robot specs:
+
+servos: SG90
+module for comms: pca
+controller: Ps5
+Microcontroller: esp32
+battery: lithium ION, testing: power bench
+
+Controller mapping:
+
+up d-pad: mode toggle
+left d-pad: emergency stop
+right d-pad: switch dance gait
+x: toggle sitting and standing
+triangle: movements set to default
+circle: dance
+square: attack animation
+left joystick: movements connected with respective gait, when in deadzone stop
+right joystick: turning
+
+robot modes -> 
+| Mode | Purpose |
+| NORMAL | Normal walking |
+| IK | Manually control front-right leg |
+| DANCE | Execute predefined dances |
+| CALIBRATION | Calibrate servos |
+| EMERGENCY_STOP | Disable movement |
+

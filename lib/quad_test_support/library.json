@@ -1,0 +1,8 @@
+{
+  "name": "quad_test_support",
+  "version": "1.0.0",
+  "description": "Fake hardware implementations for tests",
+  "frameworks": "*",
+  "platforms": "*",
+  "dependencies": [{ "name": "quad_core" }]
+}

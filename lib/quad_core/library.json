@@ -1,0 +1,7 @@
+{
+  "name": "quad_core",
+  "version": "1.0.0",
+  "description": "Platform-independent quadruped logic: kinematics, gaits, dances, safety, modes, telemetry",
+  "frameworks": "*",
+  "platforms": "*"
+}
