@@ -78,9 +78,9 @@ inline RobotConfig makeRobotConfig() {
   // ------------------------------------------------------------- geometry --
   // Measure your legs: coxa = coxa axis -> femur axis, femur = femur axis ->
   // tibia axis, tibia = tibia axis -> foot tip.
-  c.geometry.coxaLength = 27.5f;
-  c.geometry.femurLength = 55.0f;
-  c.geometry.tibiaLength = 77.5f;
+  c.geometry.coxaLength = 55.0f;
+  c.geometry.femurLength = 72.0f;
+  c.geometry.tibiaLength = 90.0f;
   // Joint angle at which the servo sits at servoCentreDeg (the calibration pose):
   // coxa straight out, femur horizontal, tibia at 90 deg to the femur.
   c.geometry.coxaRefDeg = 0.0f;

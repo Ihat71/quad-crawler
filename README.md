@@ -68,11 +68,11 @@ Battery divider: connect battery + → 100 kΩ → GPIO34 → 33 kΩ → GND, th
 
 ### Pairing the PS5 controller
 
-The `ps5-esp32` library makes the ESP32 pose as a device the controller has already paired with.
+The `ps5-esp32` library makes the ESP32 open the connection to the controller, so `QUAD_PS5_MAC` is the **controller's own** Bluetooth MAC address, written with colons (`aa:bb:cc:dd:ee:ff`).
 
-1. Pair the DualSense with a PC or phone: hold **Create + PS** until the light flashes fast, then pair it in the Bluetooth settings.
-2. Find that PC's or phone's **Bluetooth MAC address** and put it in `QUAD_PS5_MAC`.
-3. Switch Bluetooth off on the PC or phone, then press **PS**. The controller connects to the robot.
+1. Pair the DualSense with a phone or PC: hold **Create + PS** until the light flashes fast, then pair it in the Bluetooth settings.
+2. Read the controller's MAC from the paired device's details (Android: Bluetooth → ⚙ next to "Wireless Controller"; Windows: Device Manager → the controller → Properties → Details → "Bluetooth device address") and put it in `QUAD_PS5_MAC`.
+3. Unpair the controller from the phone or PC, or switch its Bluetooth off, then press **PS**. The controller connects to the robot.
 
 The lightbar shows the mode: green NORMAL, blue IK, magenta DANCE, yellow CALIBRATION, red E-STOP, dim white while the outputs are off, and orange for low battery.
 
